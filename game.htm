@@ -1,0 +1,16 @@
+﻿<div ng-controller="StartController">
+    
+    <input type="range" min="4" max="10" ng-model="rowsNum"/>
+
+    <counter/>
+
+    <div class="cellContainer">
+      <div ng-repeat="col in field" class="col">
+
+          <span ng-repeat="cell in col track by cell.id" cell field="field[$parent.$index][$index]" handler="clickOnCellHandler(x,y)"></span>
+          <br/>
+
+      </div>
+    </div>
+
+</div>
