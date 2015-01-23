@@ -34,23 +34,19 @@ function getDirsByWidth(width){
 
 }
 
-function getMaxStepLength(array, start, end, width){
-
-    if(start > width/2 || end > width/2)return Math.max(start,end);
-
-    return Math.max( Math.abs(start-(array[0].length-1)), Math.abs(end-(array.length-1)) );
-
+function getMaxStepLength(start, end, width){
+    return Math.max(start, end, width-start, width-end);
 }
 
 function goThroughMatrix(arr, start, end, $timeout, width, turns){
 
   width = width == undefined ? 1 : width;
-  turns = turns == undefined ? getMaxStepLength(arr, start, end, arr.length) : turns;
+  turns = turns == undefined ? getMaxStepLength(start, end, arr.length) : turns;
 
   if(turns){
 
     var dirs = getDirsByWidth(width);
-    console.log(dirs);
+
     var x = start;
     var y = end;
 
@@ -62,9 +58,8 @@ function goThroughMatrix(arr, start, end, $timeout, width, turns){
        y += dir[1];
 
        if(arr[y] && arr[y][x]){
-         console.log(arr[y][x]);
 
-          if(!arr[y][x].blink){
+          if(!arr[y][x].doNotBlink && !arr[y][x].blink){
             arr[y][x].blink = true;
           }
 

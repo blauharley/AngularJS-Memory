@@ -219,30 +219,30 @@
 
         };
 
-        $scope.foundPairsNum = 0;
+        var pairs;
 
-        $scope.getNewField = function(){
+        var getNewField = function(){
 
           var field = createField();
-
-          var pairs = ['#','$','&'];
+          pairs = ['#','$','&'];
 
           var formerPoss = [];
+          var currPairs = Array.prototype.slice.call(pairs);
 
-           while(pairs.length){
+           while(currPairs.length){
 
                 var pos = getUniquePos(100, formerPoss);
                 formerPoss.push(pos.x*pos.y);
-                var mixedPairs = mixPairs(pairs);
+
+                var mixedPairs = mixPairs(currPairs);
                 var sign = mixedPairs[$scope.getRandWithinRange(mixedPairs.length)];
-                console.log(pos);
-                pairs.splice(pairs.indexOf(sign),1);
+
+                currPairs.splice(currPairs.indexOf(sign),1);
 
                 field[pos.y][pos.x].val = sign;
 
                 var counterPoss = getUniquePos(100, formerPoss);
                 formerPoss.push(counterPoss.x*counterPoss.y);
-                console.log(counterPoss);
                 field[counterPoss.y][counterPoss.x].val = sign;
 
                 field[pos.y][pos.x].counterpart = { x: counterPoss.x, y : counterPoss.y };
@@ -255,8 +255,38 @@
 
         };
 
+        var filpCells = function(){
+
+            var flippedPairNum = 0;
+
+            for(var y=0; y< $scope.field.length; y++){
+              for(var x=0; x <$scope.field[y].length; x++){
+
+                flippedPairNum++;
+
+                (function(x,y, num){
+
+                    $timeout(function(){
+
+                        $scope.field[y][x].animate = false;
+                        $scope.field[y][x].disabled = false;
+
+                        if(num >= flippedPairNum){
+                            $scope.field = getNewField();
+                        }
+
+                    },500);
+
+                })(x,y, (y*$scope.field.length)+x);
+
+              }
+            }
+
+        };
+
         var formerField = null;
         var clickRestrict = false;
+        var foundPairsNum = 0;
 
         $scope.clickOnCellHandler = function(x,y){
 
@@ -265,6 +295,7 @@
             if(clickRestrict)return;
 
             var field = $scope.field[y][x];
+            field.doNotBlink = true;
 
             if(formerField && formerField.counterpart && formerField.counterpart.x == x && formerField.counterpart.y == y){
 
@@ -278,10 +309,23 @@
 
                 Counter.inc($scope);
 
+                foundPairsNum++;
+
                 $timeout(function(){
+
+                    field.doNotBlink = false;
+                    formerField.doNotBlink = false;
 
                     formerField = null;
                     clickRestrict = false;
+
+                    if(foundPairsNum >= pairs.length){
+
+                        if($scope.field){
+                          filpCells();
+                        }
+
+                    }
 
                 },2000);
 
@@ -295,8 +339,10 @@
 
                 $timeout(function(){
 
+                    formerField.doNotBlink = false;
                     formerField.animate = false;
                     field.animate = false;
+                    field.doNotBlink = false;
 
                     formerField = null;
                     clickRestrict = false;
@@ -317,10 +363,13 @@
 
         $scope.rowsNum = 4;
 
-        $scope.field = $scope.getNewField();
-
         $scope.$watch("rowsNum", function(rowsNum){
-            $scope.field = $scope.getNewField();
+
+            foundPairsNum = 0;
+            $scope.currentVal = 0;
+
+            $scope.field = getNewField();
+
         },true);
 
     });
@@ -339,8 +388,6 @@
             $scope.disabled = 0;
 
             $scope.$on('blink', function(event, pos){
-
-                console.log(pos, $scope.cell);
 
                 if(pos.x == $scope.cell.x && pos.y == $scope.cell.y){
 
@@ -370,8 +417,6 @@
 
     app.service('Counter', function($timeout){
         this.inc = function($scope){
-             console.log('inc called');
-            console.log($scope);
 
             $scope.nextVal = $scope.currentVal+1;
 
