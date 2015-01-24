@@ -1,82 +1,6 @@
 ﻿
-function getDirsByWidth(width){
-
-    var oneStepdirs = [[0,-1], [1,0], [0,1], [0,1], [-1,0], [-1,0], [0,-1], [0,-1]];
-
-    var dirs = [];
-
-    for(var d=0; d < oneStepdirs.length; d++){
-
-       var currWidth = width;
-       var currOneStep = oneStepdirs[d];
-
-       while(currWidth){
-
-          dirs.push(Array.prototype.slice.call(currOneStep));
-          currWidth--;
-       }
-
-    }
-
-    if(width-1){
-
-       var currWidth = width-1;
-
-       while(currWidth){
-
-          dirs.push(Array.prototype.slice.call([1,0]));
-          currWidth--;
-       }
-
-    }
-
-    return dirs;
-
-}
-
-function getMaxStepLength(start, end, width){
-    return Math.max(start, end, width-start, width-end);
-}
-
-function goThroughMatrix(arr, start, end, $timeout, width, turns){
-
-  width = width == undefined ? 1 : width;
-  turns = turns == undefined ? getMaxStepLength(start, end, arr.length) : turns;
-
-  if(turns){
-
-    var dirs = getDirsByWidth(width);
-
-    var x = start;
-    var y = end;
-
-    for(var d=0; d < dirs.length; d++){
-
-       var dir = dirs[d];
-
-       x += dir[0];
-       y += dir[1];
-
-       if(arr[y] && arr[y][x]){
-
-          if(!arr[y][x].doNotBlink && !arr[y][x].blink){
-            arr[y][x].blink = true;
-          }
-
-          (function(x,y){
-            $timeout(function(){
-                arr[y][x].blink = false;
-            },500);
-          })(x,y);
-       }
-
-    }
-
-    goThroughMatrix(arr, start, end, $timeout, width + 1, turns-1);
-
-  }
-
-}
+var workerScript;
+var workerMethod;
 
 function printMatrix(arr){
 
@@ -109,3 +33,114 @@ function printMatrix(arr){
 // 19 20 21 22 23 24
 // 25 26 27 28 29 30
 // 31 32 33 34 35 36
+
+(function(){
+
+    function getDirsByWidth(width){
+
+        var oneStepdirs = [[0,-1], [1,0], [0,1], [0,1], [-1,0], [-1,0], [0,-1], [0,-1]];
+
+        var dirs = [];
+
+        for(var d=0; d < oneStepdirs.length; d++){
+
+           var currWidth = width;
+           var currOneStep = oneStepdirs[d];
+
+           while(currWidth){
+
+              dirs.push(Array.prototype.slice.call(currOneStep));
+              currWidth--;
+           }
+
+        }
+
+        if(width-1){
+
+           var currWidth = width-1;
+
+           while(currWidth){
+
+              dirs.push(Array.prototype.slice.call([1,0]));
+              currWidth--;
+           }
+
+        }
+
+        return dirs;
+
+    }
+
+    function getMaxStepLength(start, end, width){
+        return Math.max(start, end, width-start, width-end);
+    }
+
+    var worker;
+
+    workerScript = {
+
+        init: function(file){
+            worker = new Worker(file);
+        },
+
+        goThroughMatrix : function(arr, start, end, $timeout, width, turns){
+
+            width = width == undefined ? 1 : width;
+            turns = turns == undefined ? getMaxStepLength(start, end, arr.length) : turns;
+
+            if(turns){
+
+              worker.postMessage(width);
+
+              worker.onmessage = function(e){
+
+                  var dirs = e.data;
+
+                  var x = start;
+                  var y = end;
+
+                  for(var d=0; d < dirs.length; d++){
+
+                     var dir = dirs[d];
+
+                     x += dir[0];
+                     y += dir[1];
+
+                     if(arr[y] && arr[y][x]){
+
+                        if(!arr[y][x].doNotBlink && !arr[y][x].blink){
+                          arr[y][x].blink = true;
+                        }
+
+                        (function(x,y){
+                          $timeout(function(){
+                              arr[y][x].blink = false;
+                          },500);
+                        })(x,y);
+                     }
+
+                  }
+
+                  workerScript.goThroughMatrix(arr, start, end, $timeout, width + 1, turns-1);
+
+              };
+
+        }
+
+      }
+
+    };
+
+    workerMethod = function(e){
+
+        var width = e.data;
+
+        var dirs = getDirsByWidth(width);
+
+        postMessage(dirs);
+
+    };
+
+})();
+
+onmessage = workerMethod;

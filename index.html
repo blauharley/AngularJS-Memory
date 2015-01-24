@@ -6,7 +6,9 @@
   <style type="text/css">
 
     .cellContainer{
+        -ms-perspective: 1000;
         perspective: 250px;
+
         position: relative;
 
         width:500px;
@@ -137,6 +139,8 @@
           templateUrl: './game.htm',
           controller:startCtrl
       });
+
+      workerScript.init('js/go_through_matrix.js');
 
     });
 
@@ -357,7 +361,7 @@
 
         $scope.goThroughCellAt = function(start, end){
 
-            goThroughMatrix($scope.field, start, end, $timeout);
+            workerScript.goThroughMatrix($scope.field, start, end, $timeout);
 
         };
 
