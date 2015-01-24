@@ -89,12 +89,12 @@ function printMatrix(arr){
             turns = turns == undefined ? getMaxStepLength(start, end, arr.length) : turns;
 
             if(turns){
-
+                         /*
               worker.postMessage(width);
 
               worker.onmessage = function(e){
-
-                  var dirs = e.data;
+                          */
+                  var dirs = getDirsByWidth(width);
 
                   var x = start;
                   var y = end;
@@ -123,7 +123,7 @@ function printMatrix(arr){
 
                   workerScript.goThroughMatrix(arr, start, end, $timeout, width + 1, turns-1);
 
-              };
+              //};
 
         }
 
