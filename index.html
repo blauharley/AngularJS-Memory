@@ -35,9 +35,9 @@
       box-shadow: -5px 5px 5px #aaa;
     }
 
-    .cell.blink-add {
-      animation: blink 1.5s steps(5, start) infinite;
-      -webkit-animation: blink 1.5s steps(5, start) infinite;
+    .cell.blink {
+      animation: blink 1.5s steps(9, start) infinite;
+      -webkit-animation: blink 1.5s steps(9, start) infinite;
     }
 
     @keyframes blink {
@@ -80,7 +80,7 @@
     }
 
     .cell.clicked .face.back{
-      -ms-backface-visibility: visible; 
+      -ms-backface-visibility: visible;
     }
 
     .counter{
@@ -402,7 +402,7 @@
                     $scope.$parent.goThroughCellAt($scope.cell.x, $scope.cell.y);
 
                 }
-
+                
             });
 
           }
