@@ -75,6 +75,20 @@ function printMatrix(arr){
         return Math.max(start, end, width-start, width-end);
     }
 
+    function queryRaspberryPin($http, duty){
+
+        var pinNr = 4;
+
+        $http.get('/angularjs/php/led-duty.php?pin='+pinNr+'&start='+duty, {}).
+            success(function(data, status, headers, config) {
+              console.log('reaspberry success');
+            }).
+            error(function(data, status, headers, config) {
+                alert('Raspberry-Error: '+status);
+            });
+
+    }
+
     var worker;
 
     workerScript = {
@@ -83,51 +97,93 @@ function printMatrix(arr){
             worker = new Worker(file);
         },
 
+        // drop into water
         goThroughMatrix : function(arr, start, end, $timeout, width, turns){
 
             width = width == undefined ? 1 : width;
             turns = turns == undefined ? getMaxStepLength(start, end, arr.length) : turns;
 
             if(turns){
-                         /*
-              worker.postMessage(width);
 
-              worker.onmessage = function(e){
-                          */
-                  var dirs = getDirsByWidth(width);
+                var dirs = getDirsByWidth(width);
 
-                  var x = start;
-                  var y = end;
+                var x = start;
+                var y = end;
 
-                  for(var d=0; d < dirs.length; d++){
+                for(var d=0; d < dirs.length; d++){
 
-                     var dir = dirs[d];
+                   var dir = dirs[d];
 
-                     x += dir[0];
-                     y += dir[1];
+                   x += dir[0];
+                   y += dir[1];
 
-                     if(arr[y] && arr[y][x]){
+                   if(arr[y] && arr[y][x]){
 
-                        if(!arr[y][x].doNotBlink && !arr[y][x].blink){
-                          arr[y][x].blink = true;
+                      if(!arr[y][x].doNotBlink && !arr[y][x].blink){
+                        arr[y][x].blink = true;
+                      }
+
+                      (function(x,y){
+                        $timeout(function(){
+                            arr[y][x].blink = false;
+                        },500);
+                      })(x,y);
+                   }
+
+                }
+
+                workerScript.goThroughMatrix(arr, start, end, $timeout, width + 1, turns-1);
+
+            }
+
+        },
+
+        callDutyCyleForRaspberry: function(arr, start, end, $http, width, turns){
+
+                if(arr[end] && arr[end][start] && arr[end][start].counterpart){
+                    queryRaspberryPin($http, 100);
+                    return;
+                }
+
+                width = width == undefined ? 1 : width;
+                turns = turns == undefined ? getMaxStepLength(start, end, arr.length) : turns;
+
+                if(turns){
+
+                    worker.postMessage(width);
+
+                    worker.onmessage = function(e){
+
+                        var dirs = e.data;
+
+                        var x = start;
+                        var y = end;
+
+                        for(var d=0; d < dirs.length; d++){
+
+                           var dir = dirs[d];
+
+                           x += dir[0];
+                           y += dir[1];
+
+                           if(arr[y] && arr[y][x] && arr[y][x].counterpart && !arr[y][x].disabled){
+                                var callDuty = 100 - (width*20);
+                                callDuty = callDuty > 0 ? callDuty : 0;
+                                console.log(callDuty);
+                                queryRaspberryPin($http, callDuty);
+                                return;
+                           }
+
                         }
 
-                        (function(x,y){
-                          $timeout(function(){
-                              arr[y][x].blink = false;
-                          },500);
-                        })(x,y);
-                     }
+                        var duty = workerScript.callDutyCyleForRaspberry(arr, start, end, $http, width + 1, turns-1);
+                        queryRaspberryPin($http, duty);
 
-                  }
+                    };
 
-                  workerScript.goThroughMatrix(arr, start, end, $timeout, width + 1, turns-1);
-
-              //};
+                }
 
         }
-
-      }
 
     };
 

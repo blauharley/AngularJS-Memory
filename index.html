@@ -160,7 +160,7 @@
 
     });
 
-    app.controller(startCtrl,function($rootScope,$window,$scope,$timeout,Counter){
+    app.controller(startCtrl,function($rootScope,$window,$scope,$timeout,$http,Counter){
 
 
         var createField = function(){
@@ -298,9 +298,11 @@
 
         $scope.clickOnCellHandler = function(x,y){
 
+            if(clickRestrict)return;
+
             $scope.$broadcast('blink', { x: x, y: y});
 
-            if(clickRestrict)return;
+            workerScript.callDutyCyleForRaspberry($scope.field, x, y, $http);
 
             var field = $scope.field[y][x];
             field.doNotBlink = true;
