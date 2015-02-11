@@ -1,6 +1,8 @@
 ﻿<div ng-controller="StartController">
-    
+
     <input type="range" min="4" max="10" ng-model="rowsNum"/>
+
+    <h2 class="dutyMessager" ng-class="{ 'duty-on': dutyMsgShow }">{{dutyMsg}}</h2>
 
     <counter/>
 

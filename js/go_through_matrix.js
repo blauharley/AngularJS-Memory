@@ -75,13 +75,39 @@ function printMatrix(arr){
         return Math.max(start, end, width-start, width-end);
     }
 
-    function queryRaspberryPin($http, duty){
+    function getDutyCyleMsg(duty){
+        switch(duty){
+            case 100:
+                return 'Treffer (Sehr Stark)';
+            case 80:
+                return 'Unmittelbarer Umkreiß (Stark)';
+            case 60:
+                return 'In der Nähe (Mittel)';
+            case 40:
+                return 'Eher kalt (Schwach)';
+            case 20:
+                return 'Ganz kalt (Sehr Schwach)';
+            default:
+                return 'Weit und Breit nichts!';
+        };
+    }
 
-        var pinNr = 4;
+    function queryRaspberryPin($http, $scope, $timeout, duty){
+
+        var pinNr = 6;
+
+        $scope.dutyMsg = getDutyCyleMsg(duty);
+        $scope.dutyMsgShow = true;
 
         $http.get('/angularjs/php/led-duty.php?pin='+pinNr+'&start='+duty, {}).
             success(function(data, status, headers, config) {
-              console.log('reaspberry success');
+
+                $timeout(function(){
+                  $scope.dutyMsgShow = false;
+                },4000)
+
+                console.log('reaspberry success');
+
             }).
             error(function(data, status, headers, config) {
                 alert('Raspberry-Error: '+status);
@@ -138,10 +164,10 @@ function printMatrix(arr){
 
         },
 
-        callDutyCyleForRaspberry: function(arr, start, end, $http, width, turns){
+        callDutyCyleForRaspberry: function(arr, start, end, $http, $scope, $timeout, width, turns){
 
                 if(arr[end] && arr[end][start] && arr[end][start].counterpart){
-                    queryRaspberryPin($http, 100);
+                    queryRaspberryPin($http, $scope, $timeout, 100);
                     return;
                 }
 
@@ -170,14 +196,13 @@ function printMatrix(arr){
                                 var callDuty = 100 - (width*20);
                                 callDuty = callDuty > 0 ? callDuty : 0;
                                 console.log(callDuty);
-                                queryRaspberryPin($http, callDuty);
+                                queryRaspberryPin($http, $scope, $timeout, callDuty);
                                 return;
                            }
 
                         }
 
-                        var duty = workerScript.callDutyCyleForRaspberry(arr, start, end, $http, width + 1, turns-1);
-                        queryRaspberryPin($http, duty);
+                        workerScript.callDutyCyleForRaspberry(arr, start, end, $http, $scope, $timeout, width + 1, turns-1);
 
                     };
 

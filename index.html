@@ -5,6 +5,15 @@
   <title>AngularJS</title>
   <style type="text/css">
 
+    .dutyMessager{
+        transition: transform 1s;
+        opacity: 0;
+    }
+
+    .dutyMessager.duty-on{
+        opacity: 1;
+    }
+
     .cellContainer{
         -ms-perspective: 1000;
         perspective: 250px;
@@ -302,7 +311,7 @@
 
             $scope.$broadcast('blink', { x: x, y: y});
 
-            workerScript.callDutyCyleForRaspberry($scope.field, x, y, $http);
+            workerScript.callDutyCyleForRaspberry($scope.field, x, y, $http, $scope, $timeout);
 
             var field = $scope.field[y][x];
             field.doNotBlink = true;
