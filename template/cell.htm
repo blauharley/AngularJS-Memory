@@ -1,6 +1,11 @@
 <div id="cell-{{cell.y}}-{{cell.x}}" class="cell" ng-class="{'clicked' : cell.animate, 'blink' : cell.blink}">
     <div class="face front" ng-click="cell.disabled || clickHandler({x:cell.x,y:cell.y})">X</div>
     <div class="face back" ng-style="{'background-color' : (cell.counterpart && 'green' || 'red' )}">
-        {{cell.val}}
+        <div ng-if="cell.val != $parent.wrongPairLabel">
+            <lazy-img image="cell.pair"></lazy-img>
+        </div>
+        <div ng-if="cell.val == $parent.wrongPairLabel">
+            {{cell.val}}
+        </div>
     </div>
 </div>

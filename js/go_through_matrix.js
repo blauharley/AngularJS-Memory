@@ -99,6 +99,7 @@ function printMatrix(arr){
         $scope.dutyMsg = getDutyCyleMsg(duty);
         $scope.dutyMsgShow = true;
 
+        /* raspberry deactivated by default
         $http.get('/angularjs/php/led-duty.php?pin='+pinNr+'&start='+duty, {}).
             success(function(data, status, headers, config) {
 
@@ -112,7 +113,7 @@ function printMatrix(arr){
             error(function(data, status, headers, config) {
                 alert('Raspberry-Error: '+status);
             });
-
+                */
     }
 
     var worker;

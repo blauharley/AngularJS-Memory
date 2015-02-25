@@ -128,7 +128,7 @@
 </head>
 
 
-<body ng-app="testApp" ng-controller="AppController">
+<body ng-app="app" ng-controller="AppController">
 
     <div ng-view></div>
 
@@ -142,317 +142,426 @@
 
 <script>
 
-    var app = angular.module('testApp',['ngRoute','ngAnimate']);
-    var appCtrl = 'AppController';
-    var startCtrl = 'StartController';
+    (function(){
 
-    app.config(function($routeProvider){
+        'use strict';
 
-      $routeProvider.when('/', {
-          templateUrl: './game.htm',
-          controller:startCtrl
-      });
+        var app = angular.module('app',['ngRoute','ngAnimate','imagesHandleModule']);
 
-      workerScript.init('js/go_through_matrix.js');
+        var appCtrl = 'AppController';
+        var startCtrl = 'StartController';
 
-    });
+        app.constant("CONSTS", {
+            "WRONG_PAIR_LABEL": "Zonk"
+        });
 
-    app.controller(appCtrl,function($rootScope,$location){
+        app.config(function($routeProvider,imgLoaderProvider){
 
-        $rootScope.changePage = function(url){
-            $location.url(url);
-        };
+          $routeProvider.when('/game', {
+              templateUrl: './game.htm',
+              controller:startCtrl
+          });
 
-        $rootScope.getRandWithinRange = function(range){
-          return Math.floor(Math.random()*range);
-        }
+          $routeProvider.otherwise({
+              templateUrl: './app.htm',
+              controller:appCtrl
+          });
 
-    });
+          imgLoaderProvider.loadImagesSuccessively(
+              function(error){
+                alert(error);
+              }
+          );
 
-    app.controller(startCtrl,function($rootScope,$window,$scope,$timeout,$http,Counter){
+          workerScript.init('js/go_through_matrix.js');
 
+        });
 
-        var createField = function(){
+        app.controller(appCtrl,function($rootScope,$location){
 
-          var fieldWidth = $scope.rowsNum,
-              fieldHeight = $scope.rowsNum;
+            $rootScope.changePage = function(url){
+                $location.url(url);
+            };
 
-          var field = [];
-          for(var h=0; h < fieldHeight;h++){
-            field[h] = [];
-            for(var w=0; w<fieldWidth;w++){
-
-              var fieldContent = 'Zonk';
-              field[h][w] = { id: fieldHeight*h+w+1, x: w, y:h, val: fieldContent, counterpart: null, disabled: false };
-
-            }
-          }
-
-          return field;
-
-        };
-
-        var mixPairs = function(pairs,round){
-
-            round = round != undefined ? round : 10;
-            pairs = Array.prototype.slice.call(pairs);
-
-            var mixedPairs = [];
-            while(pairs.length){
-              mixedPairs.push(pairs.splice(Math.floor(Math.random()*pairs.length),1)[0]);
+            $rootScope.getRandWithinRange = function(range){
+              return Math.floor(Math.random()*range);
             }
 
-            if(round)return mixPairs(mixedPairs,round-1)
+        });
 
-            return mixedPairs;
+        app.controller(startCtrl,function($rootScope,$window,$scope,$timeout,$http,Counter,imgLoader,CONSTS){
 
-        };
+            $rootScope.wrongPairLabel = CONSTS.WRONG_PAIR_LABEL;
 
-        var getRandomNumNotContains = function(max,arr){
+            var images = imgLoader();
 
-            var rand = $scope.getRandWithinRange(max);
+            var createField = function(){
 
-            if(arr.indexOf(rand)==-1)return rand;
+              var fieldWidth = $scope.rowsNum,
+                  fieldHeight = $scope.rowsNum;
 
-            return getRandomNumNotContains(max, arr);
+              var field = [];
+              for(var h=0; h < fieldHeight;h++){
+                field[h] = [];
+                for(var w=0; w<fieldWidth;w++){
 
-        };
+                  var fieldContent = $rootScope.wrongPairLabel;
+                  field[h][w] = { id: fieldHeight*h+w+1, x: w, y:h, val: fieldContent, counterpart: null, disabled: false };
 
-        var getUniquePos = function(max, formerPos){
+                }
+              }
 
-            var rand = $scope.getRandWithinRange(max);
+              return field;
 
-            var x = Math.abs(rand % $scope.rowsNum);
-            var y = Math.abs(parseInt(rand / 10) % $scope.rowsNum);
+            };
 
-            if(formerPos.indexOf(x*y)==-1){
-                return {
-                    y: y,
-                    x: x,
-                };
-            }
-            return getUniquePos(max, formerPos);
+            var mixPairs = function(pairs,round){
+
+                round = round != undefined ? round : 10;
+                pairs = Array.prototype.slice.call(pairs);
+
+                var mixedPairs = [];
+                while(pairs.length){
+                  mixedPairs.push(pairs.splice(Math.floor(Math.random()*pairs.length),1)[0]);
+                }
+
+                if(round)return mixPairs(mixedPairs,round-1)
+
+                return mixedPairs;
+
+            };
+
+            var getRandomNumNotContains = function(max,arr){
+
+                var rand = $scope.getRandWithinRange(max);
+
+                if(arr.indexOf(rand)==-1)return rand;
+
+                return getRandomNumNotContains(max, arr);
+
+            };
+
+            var getUniquePos = function(max, formerPos){
+
+                var rand = $scope.getRandWithinRange(max);
+
+                var x = Math.abs(rand % $scope.rowsNum);
+                var y = Math.abs(parseInt(rand / 10) % $scope.rowsNum);
+
+                if(formerPos.indexOf(x*y)==-1){
+                    return {
+                        y: y,
+                        x: x,
+                    };
+                }
+                return getUniquePos(max, formerPos);
 
 
-        };
+            };
 
-        var pairs;
+            var pairs;
 
-        var getNewField = function(){
+            var getNewField = function(){
 
-          var field = createField();
-          pairs = ['#','$','&'];
+              var field = createField();
+              pairs = images.slice(0,$scope.getRandWithinRange(field.length));
 
-          var formerPoss = [];
-          var currPairs = Array.prototype.slice.call(pairs);
+              var formerPoss = [];
+              var currPairs = Array.prototype.slice.call(pairs);
 
-           while(currPairs.length){
+               while(currPairs.length){
 
-                var pos = getUniquePos(100, formerPoss);
-                formerPoss.push(pos.x*pos.y);
+                    var pos = getUniquePos(100, formerPoss);
+                    formerPoss.push(pos.x*pos.y);
 
-                var mixedPairs = mixPairs(currPairs);
-                var sign = mixedPairs[$scope.getRandWithinRange(mixedPairs.length)];
+                    var mixedPairs = mixPairs(currPairs);
+                    var pair = mixedPairs[$scope.getRandWithinRange(mixedPairs.length)];
 
-                currPairs.splice(currPairs.indexOf(sign),1);
+                    currPairs.splice(currPairs.indexOf(pair),1);
 
-                field[pos.y][pos.x].val = sign;
+                    field[pos.y][pos.x].pair = pair;
+                    field[pos.y][pos.x].val = true;
 
-                var counterPoss = getUniquePos(100, formerPoss);
-                formerPoss.push(counterPoss.x*counterPoss.y);
-                field[counterPoss.y][counterPoss.x].val = sign;
+                    var counterPoss = getUniquePos(100, formerPoss);
+                    formerPoss.push(counterPoss.x*counterPoss.y);
+                    field[counterPoss.y][counterPoss.x].pair = pair;
+                    field[counterPoss.y][counterPoss.x].val = true;
 
-                field[pos.y][pos.x].counterpart = { x: counterPoss.x, y : counterPoss.y };
+                    field[pos.y][pos.x].counterpart = { x: counterPoss.x, y : counterPoss.y };
 
-                field[counterPoss.y][counterPoss.x].counterpart = { x: pos.x, y : pos.y };
+                    field[counterPoss.y][counterPoss.x].counterpart = { x: pos.x, y : pos.y };
 
-           }
+               }
+               console.log(field);
+               return field;
 
-           return field;
+            };
 
-        };
+            var filpCells = function(){
 
-        var filpCells = function(){
+                var flippedPairNum = 0;
 
-            var flippedPairNum = 0;
+                for(var y=0; y< $scope.field.length; y++){
+                  for(var x=0; x <$scope.field[y].length; x++){
 
-            for(var y=0; y< $scope.field.length; y++){
-              for(var x=0; x <$scope.field[y].length; x++){
+                    flippedPairNum++;
 
-                flippedPairNum++;
+                    (function(x,y, num){
 
-                (function(x,y, num){
+                        $timeout(function(){
+
+                            $scope.field[y][x].animate = false;
+                            $scope.field[y][x].disabled = false;
+
+                            if(num >= flippedPairNum){
+                                $scope.field = getNewField();
+                            }
+
+                        },500);
+
+                    })(x,y, (y*$scope.field.length)+x);
+
+                  }
+                }
+
+            };
+
+            var formerField = null;
+            var clickRestrict = false;
+            var foundPairsNum = 0;
+
+            $scope.clickOnCellHandler = function(x,y){
+
+                if(clickRestrict)return;
+
+                $scope.$broadcast('blink', { x: x, y: y});
+
+                workerScript.callDutyCyleForRaspberry($scope.field, x, y, $http, $scope, $timeout);
+
+                var field = $scope.field[y][x];
+                field.doNotBlink = true;
+
+                if(formerField && formerField.counterpart && formerField.counterpart.x == x && formerField.counterpart.y == y){
+
+                    clickRestrict = true;
+
+                    formerField.disabled = true;
+                    field.disabled = true;
+
+                    formerField.animate = true;
+                    field.animate = true;
+
+                    Counter.inc($scope);
+
+                    foundPairsNum++;
 
                     $timeout(function(){
 
-                        $scope.field[y][x].animate = false;
-                        $scope.field[y][x].disabled = false;
+                        field.doNotBlink = false;
+                        formerField.doNotBlink = false;
 
-                        if(num >= flippedPairNum){
-                            $scope.field = getNewField();
+                        formerField = null;
+                        clickRestrict = false;
+
+                        if(foundPairsNum >= pairs.length){
+
+                            if($scope.field){
+                              filpCells();
+                            }
+
                         }
 
-                    },500);
+                    },2000);
 
-                })(x,y, (y*$scope.field.length)+x);
+                }
+                else if(formerField){
 
-              }
-            }
+                    clickRestrict = true;
 
-        };
+                    formerField.animate = true;
+                    field.animate = true;
 
-        var formerField = null;
-        var clickRestrict = false;
-        var foundPairsNum = 0;
+                    $timeout(function(){
 
-        $scope.clickOnCellHandler = function(x,y){
+                        formerField.doNotBlink = false;
+                        formerField.animate = false;
+                        field.animate = false;
+                        field.doNotBlink = false;
 
-            if(clickRestrict)return;
+                        formerField = null;
+                        clickRestrict = false;
 
-            $scope.$broadcast('blink', { x: x, y: y});
+                    },2000);
 
-            workerScript.callDutyCyleForRaspberry($scope.field, x, y, $http, $scope, $timeout);
+                }
+                else{
+                    formerField = field;
+                }
+            };
 
-            var field = $scope.field[y][x];
-            field.doNotBlink = true;
+            $scope.goThroughCellAt = function(start, end){
 
-            if(formerField && formerField.counterpart && formerField.counterpart.x == x && formerField.counterpart.y == y){
+                workerScript.goThroughMatrix($scope.field, start, end, $timeout);
 
-                clickRestrict = true;
+            };
 
-                formerField.disabled = true;
-                field.disabled = true;
+            $scope.rowsNum = 4;
 
-                formerField.animate = true;
-                field.animate = true;
+            $scope.$watch("rowsNum", function(rowsNum){
 
-                Counter.inc($scope);
+                foundPairsNum = 0;
+                $scope.currentVal = 0;
 
-                foundPairsNum++;
+                $scope.field = getNewField();
 
-                $timeout(function(){
+            },true);
 
-                    field.doNotBlink = false;
-                    formerField.doNotBlink = false;
+        });
 
-                    formerField = null;
-                    clickRestrict = false;
+        app.directive('cell',function($timeout){
+            return {
+              scope:{
+                cell: '=field',
+                clickHandler:'&handler'
+              },
+              restrict: 'A',
+              replace: true,
+              templateUrl: 'template/cell.htm',
+              link: function($scope,$element,$attrs){
 
-                    if(foundPairsNum >= pairs.length){
+                $scope.disabled = 0;
 
-                        if($scope.field){
-                          filpCells();
-                        }
+                $scope.$on('blink', function(event, pos){
+
+                    if(pos.x == $scope.cell.x && pos.y == $scope.cell.y){
+
+                        $scope.$parent.goThroughCellAt($scope.cell.x, $scope.cell.y);
 
                     }
 
-                },2000);
+                });
 
+              }
             }
-            else if(formerField){
+        });
 
-                clickRestrict = true;
+        app.directive('counter', function(){
+           return {
+             restrict: 'E',
+             templateUrl: 'template/counter.htm',
+             replace: true,
+             link: function($scope,$element){
 
-                formerField.animate = true;
-                field.animate = true;
+                $scope.nextVal=$scope.currentVal=0;
+                $scope.nextPanelShow = false;
+                $scope.currentPanelShow = true;
+             }
+           }
+        });
+
+        app.service('Counter', function($timeout){
+            this.inc = function($scope){
+
+                $scope.nextVal = $scope.currentVal+1;
+
+                $scope.currentPanelShow = false;
+                $scope.nextPanelShow = true;
 
                 $timeout(function(){
 
-                    formerField.doNotBlink = false;
-                    formerField.animate = false;
-                    field.animate = false;
-                    field.doNotBlink = false;
+                    $scope.currentVal = $scope.nextVal;
 
-                    formerField = null;
-                    clickRestrict = false;
+                    $scope.currentPanelShow = true;
+                    $scope.nextPanelShow = false;
 
                 },2000);
 
             }
-            else{
-                formerField = field;
-            }
-        };
+        });
 
-        $scope.goThroughCellAt = function(start, end){
+        var imgLoad = angular.module('imagesHandleModule',[]);
 
-            workerScript.goThroughMatrix($scope.field, start, end, $timeout);
+        imgLoad.provider('imgLoader', function(){
 
-        };
+          // put your images in here
+          var imgBaseDir = 'images/';
+          var imgUrls = [
+              imgBaseDir+'IMG_0001.JPG',
+              imgBaseDir+'IMG_0002.JPG',
+              imgBaseDir+'IMG_0003.JPG',
+              imgBaseDir+'IMG_0004.JPG',
+              imgBaseDir+'IMG_0005.JPG',
+              imgBaseDir+'IMG_0006.JPG',
+              imgBaseDir+'IMG_0007.JPG',
+              imgBaseDir+'IMG_0008.JPG',
+              imgBaseDir+'IMG_0009.JPG',
+              imgBaseDir+'IMG_0010.JPG',
+              imgBaseDir+'IMG_0011.JPG'
+          ];
 
-        $scope.rowsNum = 4;
+          var loadedImgs = [];
 
-        $scope.$watch("rowsNum", function(rowsNum){
+          this.loadImagesSuccessively = function(error){
 
-            foundPairsNum = 0;
-            $scope.currentVal = 0;
+            var nextLoad = function(){
 
-            $scope.field = getNewField();
+                var src = imgUrls.pop();
 
-        },true);
+                if(src){
 
-    });
+                    var img = new Image();
 
-    app.directive('cell',function($timeout){
-        return {
-          scope:{
-            cell: '=field',
-            clickHandler:'&handler'
-          },
-          restrict: 'A',
-          replace: true,
-          templateUrl: 'template/cell.htm',
-          link: function($scope,$element,$attrs){
+                    img.onload = function(){
+                        loadedImgs.push(img);
+                        nextLoad();
+                    };
 
-            $scope.disabled = 0;
+                    img.onerror = function(e){
+                      error(e);
+                    };
 
-            $scope.$on('blink', function(event, pos){
-
-                if(pos.x == $scope.cell.x && pos.y == $scope.cell.y){
-
-                    $scope.$parent.goThroughCellAt($scope.cell.x, $scope.cell.y);
+                    img.src = src;
 
                 }
-                
-            });
 
-          }
-        }
-    });
+            };
 
-    app.directive('counter', function(){
-       return {
-         restrict: 'E',
-         templateUrl: 'template/counter.htm',
-         replace: true,
-         link: function($scope,$element){
+            nextLoad();
 
-            $scope.nextVal=$scope.currentVal=0;
-            $scope.nextPanelShow = false;
-            $scope.currentPanelShow = true;
-         }
-       }
-    });
+          };
 
-    app.service('Counter', function($timeout){
-        this.inc = function($scope){
+          this.$get = function() {
+            return function() {
+              return loadedImgs;
+            };
+          };
 
-            $scope.nextVal = $scope.currentVal+1;
+        });
 
-            $scope.currentPanelShow = false;
-            $scope.nextPanelShow = true;
+        imgLoad.directive('lazyImg', function(){
+            return {
+              restrict: 'E',
+              scope: {
+                image: '='
+              },
+              link: function($scope, $element, $attrs){
 
-            $timeout(function(){
+                $scope.$watch('image', function(image) {
 
-                $scope.currentVal = $scope.nextVal;
+                    var cellWidth = 50,
+                        cellHeight = 50;
 
-                $scope.currentPanelShow = true;
-                $scope.nextPanelShow = false;
+                    image = image.cloneNode(true);
+                    image.setAttribute('style','max-width:'+cellWidth+'px; max-height:'+cellHeight+'px');
+                    $element.append(image);
 
-            },2000);
+                });
 
-        }
-    });
+              }
+            }
+        });
+
+    })();
 
 </script>
 </html>
